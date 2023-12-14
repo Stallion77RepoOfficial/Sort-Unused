@@ -1,33 +1,44 @@
 import os
+import time
 
-def dosyalari_tara(dizin, max_derinlik, mevcut_derinlik=0):
-    # Eğer maksimum derinliğe ulaşıldıysa, daha fazla tarama yapma
-    if mevcut_derinlik > max_derinlik:
-        return []
-
-    # Taranan dizin bir dizin olmalıdır, değilse boş liste dön
+def dosyalari_tara(dizin, kullanilmayan_sure=30):
     if not os.path.isdir(dizin):
-        print(f"Hata: '{dizin}' bir dizin değil.")
         return []
 
     dosyalar_ve_klasorler = []
-    try:
-        with os.scandir(dizin) as it:
-            for giris in it:
-                if giris.is_dir(follow_symlinks=False):
-                    # Özyinelemeli olarak alt klasörleri tara
-                    dosyalar_ve_klasorler.extend(dosyalari_tara(giris.path, max_derinlik, mevcut_derinlik + 1))
-                else:
-                    dosyalar_ve_klasorler.append(giris.path)
-    except NotADirectoryError as e:
-        print(f"Hata: {e}")
-    except PermissionError as e:
-        print(f"Erişim reddedildi: {e}")
+    simdiki_zaman = time.time()
+    kullanilmayan_zaman = kullanilmayan_sure * 86400
+
+    for root, _, files in os.walk(dizin):
+        for name in files:
+            dosya_yolu = os.path.join(root, name)
+            try:
+                # Dosyanın son erişim zamanını kontrol et
+                if (simdiki_zaman - os.stat(dosya_yolu).st_atime) >= kullanilmayan_zaman:
+                    dosyalar_ve_klasorler.append(dosya_yolu)
+            except FileNotFoundError:
+                pass  # Dosya bulunamadıysa, döngüyü devam ettir
+
     return dosyalar_ve_klasorler
 
-# Örnek kullanım:
 if __name__ == "__main__":
-    dizin = "/Users/berkegulacar/Downloads"
-    max_derinlik = 2
-    bulunan_dosyalar = dosyalari_tara(dizin, max_derinlik)
-    print(bulunan_dosyalar)
+    dizin = input("Lütfen taranacak dizini girin: ")
+    kullanilmayan_sure = int(input("Kaç günden beri kullanılmayan dosyalar listelensin? (gün cinsinden): "))
+    
+    print("Tarama başladı...")
+    bulunan_dosyalar = dosyalari_tara(dizin, kullanilmayan_sure)
+    print("Tarama tamamlandı.")
+
+    # Dosya boyutuna göre sıralama işlemi
+    bulunan_dosyalar = sorted(
+        bulunan_dosyalar,
+        key=lambda x: os.path.getsize(x),
+        reverse=input("Dosyaları artan boyuta göre sıralamak için 'A', azalan boyuta göre için 'Z' girin: ").upper() == 'Z'
+    )
+
+    if bulunan_dosyalar:
+        print("Kullanılmayan dosyaların listesi:")
+        for dosya in bulunan_dosyalar:
+            print(dosya)
+    else:
+        print("Kriterlere uyan dosya bulunamadı.")
