@@ -13,13 +13,18 @@ def dosyalari_tara(dizin, kullanilmayan_sure=30):
         for name in files:
             dosya_yolu = os.path.join(root, name)
             try:
-                # Dosyanın son erişim zamanını kontrol et
-                if (simdiki_zaman - os.stat(dosya_yolu).st_atime) >= kullanilmayan_zaman:
+                if (simdiki_zaman - os.stat(dosya_yolu).st_atime) > kullanilmayan_zaman:
                     dosyalar_ve_klasorler.append(dosya_yolu)
             except FileNotFoundError:
-                pass  # Dosya bulunamadıysa, döngüyü devam ettir
+                pass
 
     return dosyalar_ve_klasorler
+
+def dosya_boyutunu_al(dosya_yolu):
+    try:
+        return os.path.getsize(dosya_yolu)
+    except FileNotFoundError:
+        return 0
 
 if __name__ == "__main__":
     dizin = input("Lütfen taranacak dizini girin: ")
@@ -29,11 +34,10 @@ if __name__ == "__main__":
     bulunan_dosyalar = dosyalari_tara(dizin, kullanilmayan_sure)
     print("Tarama tamamlandı.")
 
-    # Dosya boyutuna göre sıralama işlemi
     bulunan_dosyalar = sorted(
         bulunan_dosyalar,
-        key=lambda x: os.path.getsize(x),
-        reverse=input("Dosyaları artan boyuta göre sıralamak için 'A', azalan boyuta göre için 'Z' girin: ").upper() == 'Z'
+        key=dosya_boyutunu_al,
+        reverse=input("Dosyaları artan boyuta göre sıralamak için 'a', azalan boyuta göre için 'z' girin: ").lower() == 'z'
     )
 
     if bulunan_dosyalar:
